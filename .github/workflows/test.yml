@@ -81,7 +81,7 @@ jobs:
         continue-on-error: true
         run: |
           if [ ${{ env.type }} == 'release' ]; then
-            typeName="原包名"
+            typeName=""
           else
             typeName="共存"
             sed "s/'.release'/'.releaseA'/" $GITHUB_WORKSPACE/app/build.gradle  -i
