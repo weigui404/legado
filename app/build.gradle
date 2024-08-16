@@ -20,7 +20,7 @@ static def releaseTime() {
 }
 
 def name = "legado"
-def version = "3." + releaseTime()
+def version = "3.25"
 def gitCommits = Integer.parseInt('git rev-list HEAD --count'.execute().text.trim())
 
 android {
@@ -47,7 +47,7 @@ android {
         }
     }
     defaultConfig {
-        applicationId "io.legado.app"
+        applicationId "com.weigui"
         minSdk 21
         targetSdk 34
         versionCode 10000 + gitCommits
@@ -77,7 +77,7 @@ android {
             if (project.hasProperty("RELEASE_STORE_FILE")) {
                 signingConfig signingConfigs.myConfig
             }
-            applicationIdSuffix '.release'
+            applicationIdSuffix '.legado'
 
             minifyEnabled true
             shrinkResources true
@@ -87,7 +87,7 @@ android {
             if (project.hasProperty("RELEASE_STORE_FILE")) {
                 signingConfig signingConfigs.myConfig
             }
-            applicationIdSuffix '.debug'
+            applicationIdSuffix '.legado.debug'
             versionNameSuffix 'debug'
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro', 'cronet-proguard-rules.pro'

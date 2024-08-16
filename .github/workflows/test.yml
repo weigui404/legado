@@ -37,8 +37,8 @@ jobs:
     steps:
       - id: set-ver
         run: |
-          echo "version=$(date -d "8 hour" -u +3.%y.%m%d%H)" >> $GITHUB_OUTPUT
-          echo "versionL=$(date -d "8 hour" -u +3.%y.%m%d%H%M)" >> $GITHUB_OUTPUT
+          echo "version=$(date -d "8 hour" -u +3.25)" >> $GITHUB_OUTPUT
+          echo "versionL=$(date -d "8 hour" -u +3.25)" >> $GITHUB_OUTPUT
       - id: check
         run: |
           if [ ${{ secrets.LANZOU_ID }} ]; then
@@ -53,7 +53,7 @@ jobs:
     strategy:
       matrix:
         product: [ app ]
-        type: [ release, releaseA ]
+        type: [ release ]
       fail-fast: false
     runs-on: ubuntu-latest
     env:
@@ -104,7 +104,7 @@ jobs:
           echo "修改APK文件名"
           mkdir -p ${{ github.workspace }}/apk/
           for file in `ls ${{ github.workspace }}/app/build/outputs/apk/*/*/*.apk`; do
-            mv "$file" ${{ github.workspace }}/apk/legado_${{ env.product }}_${{ env.VERSIONL }}_$typeName.apk
+            mv "$file" ${{ github.workspace }}/apk/legado_${{ env.product }}_${{ env.VERSIONL }}.apk
           done
           echo "移动mapping文件"
           mkdir -p ${{ github.workspace }}/mapping/
