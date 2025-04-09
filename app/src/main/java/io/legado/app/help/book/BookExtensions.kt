@@ -6,6 +6,7 @@ import android.net.Uri
 import com.script.buildScriptBindings
 import com.script.rhino.RhinoScriptEngine
 import io.legado.app.constant.AppLog
+import io.legado.app.constant.AppPattern
 import io.legado.app.constant.BookSourceType
 import io.legado.app.constant.BookType
 import io.legado.app.data.appDb
@@ -17,6 +18,7 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.model.localBook.LocalBook
 import io.legado.app.utils.FileDoc
 import io.legado.app.utils.GSON
+import io.legado.app.utils.MD5Utils
 import io.legado.app.utils.exists
 import io.legado.app.utils.find
 import io.legado.app.utils.inputStream
@@ -230,15 +232,6 @@ fun Book.upType() {
     }
 }
 
-fun BookSource.getBookType(): Int {
-    return when (bookSourceType) {
-        BookSourceType.file -> BookType.text or BookType.webFile
-        BookSourceType.image -> BookType.image
-        BookSourceType.audio -> BookType.audio
-        else -> BookType.text
-    }
-}
-
 fun Book.sync(oldBook: Book) {
     val curBook = appDb.bookDao.getBook(oldBook.bookUrl)!!
     durChapterTime = curBook.durChapterTime
@@ -251,10 +244,15 @@ fun Book.sync(oldBook: Book) {
         }
     }
     canUpdate = curBook.canUpdate
+    readConfig = curBook.readConfig
 }
 
 fun Book.update() {
     appDb.bookDao.update(this)
+}
+
+fun Book.primaryStr(): String {
+    return origin + bookUrl
 }
 
 fun Book.updateTo(newBook: Book): Book {
@@ -275,6 +273,12 @@ fun Book.updateTo(newBook: Book): Book {
     newBook.variableMap.putAll(variableMap)
     newBook.variable = GSON.toJson(variableMap)
     return newBook
+}
+
+fun Book.getFolderNameNoCache(): String {
+    return name.replace(AppPattern.fileNameRegex, "").let {
+        it.substring(0, min(9, it.length)) + MD5Utils.md5Encode16(bookUrl)
+    }
 }
 
 fun Book.getBookSource(): BookSource? {
@@ -343,7 +347,7 @@ fun Book.getExportFileName(
 fun Book.simulatedTotalChapterNum(): Int {
     return if (readSimulating()) {
         val currentDate = LocalDate.now()
-        val daysPassed = between(this.config.startDate, currentDate).days + 1
+        val daysPassed = between(config.startDate, currentDate).days + 1
         // 计算当前应该解锁到哪一章
         val chaptersToUnlock =
             max(0, (config.startChapter ?: 0) + (daysPassed * config.dailyChapters))

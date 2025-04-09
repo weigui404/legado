@@ -7,7 +7,7 @@ import io.legado.app.data.entities.SearchBook
 import io.legado.app.data.entities.rule.BookListRule
 import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.book.BookHelp
-import io.legado.app.help.book.getBookType
+import io.legado.app.help.source.getBookType
 import io.legado.app.model.Debug
 import io.legado.app.model.analyzeRule.AnalyzeRule
 import io.legado.app.model.analyzeRule.AnalyzeUrl
@@ -32,7 +32,9 @@ object BookList {
         baseUrl: String,
         body: String?,
         isSearch: Boolean = true,
-        isRedirect: Boolean = false
+        isRedirect: Boolean = false,
+        filter: ((name: String, author: String) -> Boolean)? = null,
+        shouldBreak: ((size: Int) -> Boolean)? = null
     ): ArrayList<SearchBook> {
         body ?: throw NoStackTraceException(
             appCtx.getString(
@@ -107,6 +109,7 @@ object BookList {
                 getSearchItem(
                     bookSource, analyzeRule, item, baseUrl, ruleData.getVariable(),
                     index == 0,
+                    filter,
                     ruleName = ruleName,
                     ruleBookUrl = ruleBookUrl,
                     ruleAuthor = ruleAuthor,
@@ -120,6 +123,9 @@ object BookList {
                         searchBook.infoHtml = body
                     }
                     bookList.add(searchBook)
+                }
+                if (shouldBreak?.invoke(bookList.size) == true) {
+                    break
                 }
             }
             val lh = LinkedHashSet(bookList)
@@ -177,6 +183,7 @@ object BookList {
         baseUrl: String,
         variable: String?,
         log: Boolean,
+        filter: ((name: String, author: String) -> Boolean)? = null,
         ruleName: List<AnalyzeRule.SourceRule>,
         ruleBookUrl: List<AnalyzeRule.SourceRule>,
         ruleAuthor: List<AnalyzeRule.SourceRule>,
@@ -202,6 +209,9 @@ object BookList {
             Debug.log(bookSource.bookSourceUrl, "┌获取作者", log)
             searchBook.author = BookHelp.formatBookAuthor(analyzeRule.getString(ruleAuthor))
             Debug.log(bookSource.bookSourceUrl, "└${searchBook.author}", log)
+            if (filter?.invoke(searchBook.name, searchBook.author) == false) {
+                return null
+            }
             coroutineContext.ensureActive()
             Debug.log(bookSource.bookSourceUrl, "┌获取分类", log)
             try {

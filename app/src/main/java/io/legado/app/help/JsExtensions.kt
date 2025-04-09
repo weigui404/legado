@@ -12,6 +12,7 @@ import io.legado.app.constant.AppLog
 import io.legado.app.constant.AppPattern
 import io.legado.app.data.entities.BaseSource
 import io.legado.app.exception.NoStackTraceException
+import io.legado.app.help.config.AppConfig
 import io.legado.app.help.http.BackstageWebView
 import io.legado.app.help.http.CookieManager.cookieJarHeader
 import io.legado.app.help.http.CookieStore
@@ -41,6 +42,7 @@ import io.legado.app.utils.isAbsUrl
 import io.legado.app.utils.isContentScheme
 import io.legado.app.utils.isUri
 import io.legado.app.utils.longToastOnUi
+import io.legado.app.utils.mapAsync
 import io.legado.app.utils.readBytes
 import io.legado.app.utils.readText
 import io.legado.app.utils.stackTraceStr
@@ -48,7 +50,9 @@ import io.legado.app.utils.startActivity
 import io.legado.app.utils.toStringArray
 import io.legado.app.utils.toastOnUi
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import okio.use
 import org.jsoup.Connection
@@ -114,19 +118,12 @@ interface JsExtensions : JsEncodeUtils {
     /**
      * 并发访问网络
      */
-    fun ajaxAll(urlList: Array<String>): Array<StrResponse?> {
+    fun ajaxAll(urlList: Array<String>): Array<StrResponse> {
         return runBlocking(context) {
-            val asyncArray = Array(urlList.size) {
-                async(IO) {
-                    val url = urlList[it]
-                    val analyzeUrl = AnalyzeUrl(url, source = getSource())
-                    analyzeUrl.getStrResponseAwait()
-                }
-            }
-            val resArray = Array<StrResponse?>(urlList.size) {
-                asyncArray[it].await()
-            }
-            resArray
+            urlList.asFlow().mapAsync(AppConfig.threadCount) { url ->
+                val analyzeUrl = AnalyzeUrl(url, source = getSource())
+                analyzeUrl.getStrResponseAwait()
+            }.flowOn(IO).toList().toTypedArray()
         }
     }
 
@@ -222,6 +219,7 @@ interface JsExtensions : JsEncodeUtils {
      * @param title 浏览器页面的标题
      */
     fun startBrowser(url: String, title: String) {
+        rhinoContext.ensureActive()
         SourceVerificationHelp.startBrowser(getSource(), url, title)
     }
 
@@ -229,6 +227,7 @@ interface JsExtensions : JsEncodeUtils {
      * 使用内置浏览器打开链接，并等待网页结果
      */
     fun startBrowserAwait(url: String, title: String, refetchAfterSuccess: Boolean): StrResponse {
+        rhinoContext.ensureActive()
         val body = SourceVerificationHelp.getVerificationResult(
             getSource(), url, title, true, refetchAfterSuccess
         )
@@ -243,6 +242,7 @@ interface JsExtensions : JsEncodeUtils {
      * 打开图片验证码对话框，等待返回验证结果
      */
     fun getVerificationCode(imageUrl: String): String {
+        rhinoContext.ensureActive()
         return SourceVerificationHelp.getVerificationResult(getSource(), imageUrl, "", false)
     }
 
@@ -333,8 +333,8 @@ interface JsExtensions : JsEncodeUtils {
      * @return 相对路径
      */
     @Deprecated(
-        "Depreted",
-        ReplaceWith("downloadFile(url: String)")
+        "Deprecated",
+        ReplaceWith("downloadFile(url)")
     )
     fun downloadFile(content: String, url: String): String {
         val type = AnalyzeUrl(url, source = getSource(), coroutineContext = context).type
@@ -560,7 +560,11 @@ interface JsExtensions : JsEncodeUtils {
         } else {
             cachePath + File.separator + path
         }
-        return File(aPath)
+        val file = File(aPath)
+        if (!file.canonicalPath.startsWith(cachePath)) {
+            throw SecurityException("非法路径")
+        }
+        return file
     }
 
     fun readFile(path: String): ByteArray? {
@@ -780,6 +784,10 @@ interface JsExtensions : JsEncodeUtils {
     /**
      * 解析字体Base64数据,返回字体解析类
      */
+    @Deprecated(
+        "Deprecated",
+        ReplaceWith("queryTTF(data)")
+    )
     fun queryBase64TTF(data: String?): QueryTTF? {
         log("queryBase64TTF(String)方法已过时,并将在未来删除；请无脑使用queryTTF(Any)替代，新方法支持传入 url、本地文件、base64、ByteArray 自动判断&自动缓存，特殊情况需禁用缓存请传入第二可选参数false:Boolean")
         return queryTTF(data)
@@ -917,6 +925,7 @@ interface JsExtensions : JsEncodeUtils {
      * 弹窗提示
      */
     fun toast(msg: Any?) {
+        rhinoContext.ensureActive()
         appCtx.toastOnUi("${getSource()?.getTag()}: ${msg.toString()}")
     }
 
@@ -924,6 +933,7 @@ interface JsExtensions : JsEncodeUtils {
      * 弹窗提示 停留时间较长
      */
     fun longToast(msg: Any?) {
+        rhinoContext.ensureActive()
         appCtx.longToastOnUi("${getSource()?.getTag()}: ${msg.toString()}")
     }
 
@@ -934,7 +944,7 @@ interface JsExtensions : JsEncodeUtils {
         getSource()?.let {
             Debug.log(it.getKey(), msg.toString())
         } ?: Debug.log(msg.toString())
-        AppLog.putDebug("源调试输出：$msg")
+        AppLog.putDebug("${getSource()?.getTag() ?: "源"}调试输出: $msg")
         return msg
     }
 
@@ -966,6 +976,7 @@ interface JsExtensions : JsEncodeUtils {
 
     // 新增 mimeType 参数，默认为 null（保持兼容性）
     fun openUrl(url: String, mimeType: String? = null) {
+        rhinoContext.ensureActive()
         val source = getSource() ?: throw NoStackTraceException("openUrl source cannot be null")
         appCtx.startActivity<OpenUrlConfirmActivity> {
             putExtra("uri", url)

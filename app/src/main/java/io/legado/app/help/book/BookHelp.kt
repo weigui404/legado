@@ -28,9 +28,11 @@ import io.legado.app.utils.getFile
 import io.legado.app.utils.isContentScheme
 import io.legado.app.utils.onEachParallel
 import io.legado.app.utils.postEvent
+import com.script.rhino.runScriptWithContext
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
@@ -149,7 +151,7 @@ object BookHelp {
             book.getFolderName(),
             cacheImageFolderName
         ).listFiles()?.forEach { imgFile ->
-            if (!imgNames.contains(imgFile.name)){
+            if (!imgNames.contains(imgFile.name)) {
                 imgFile.delete()
             }
         }
@@ -191,6 +193,17 @@ object BookHelp {
         }
     }
 
+    fun flowImages(bookChapter: BookChapter, content: String): Flow<String> {
+        return flow {
+            val matcher = AppPattern.imgPattern.matcher(content)
+            while (matcher.find()) {
+                val src = matcher.group(1) ?: continue
+                val mSrc = NetworkUtils.getAbsoluteURL(bookChapter.url, src)
+                emit(mSrc)
+            }
+        }
+    }
+
     suspend fun saveImages(
         bookSource: BookSource,
         book: Book,
@@ -198,14 +211,7 @@ object BookHelp {
         content: String,
         concurrency: Int = AppConfig.threadCount
     ) = coroutineScope {
-        flow {
-            val matcher = AppPattern.imgPattern.matcher(content)
-            while (matcher.find()) {
-                val src = matcher.group(1) ?: continue
-                val mSrc = NetworkUtils.getAbsoluteURL(bookChapter.url, src)
-                emit(mSrc)
-            }
-        }.onEachParallel(concurrency) { mSrc ->
+        flowImages(bookChapter, content).onEachParallel(concurrency) { mSrc ->
             saveImage(bookSource, book, mSrc, bookChapter)
         }.collect()
     }
@@ -227,12 +233,16 @@ object BookHelp {
             if (isImageExist(book, src)) {
                 return
             }
-            val analyzeUrl = AnalyzeUrl(src, source = bookSource)
+            val analyzeUrl = AnalyzeUrl(
+                src, source = bookSource, coroutineContext = coroutineContext
+            )
             val bytes = analyzeUrl.getByteArrayAwait()
             //某些图片被加密，需要进一步解密
-            ImageUtils.decode(
-                src, bytes, isCover = false, bookSource, book
-            )?.let {
+            runScriptWithContext {
+                ImageUtils.decode(
+                    src, bytes, isCover = false, bookSource, book
+                )
+            }?.let {
                 if (!checkImage(it)) {
                     // 如果部分图片失效，每次进入正文都会花很长时间再次获取图片数据
                     // 所以无论如何都要将数据写入到文件里
@@ -329,8 +339,8 @@ object BookHelp {
      * 检测该章节是否下载
      */
     fun hasContent(book: Book, bookChapter: BookChapter): Boolean {
-        return if (book.isLocalTxt
-            || (bookChapter.isVolume && bookChapter.url.startsWith(bookChapter.title))
+        return if (book.isLocalTxt ||
+            (bookChapter.isVolume && bookChapter.url.startsWith(bookChapter.title))
         ) {
             true
         } else {
@@ -541,12 +551,16 @@ object BookHelp {
     }
 
     private val chapterNamePattern1 by lazy {
-        Pattern.compile(".*?第([\\d零〇一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+)[章节篇回集话]")
+        Pattern.compile(
+            ".*?第([\\d零〇一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+)[章节篇回集话]"
+        )
     }
 
     @Suppress("RegExpSimplifiable")
     private val chapterNamePattern2 by lazy {
-        Pattern.compile("^(?:[\\d零〇一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+[,:、])*([\\d零〇一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+)(?:[,:、]|\\.[^\\d])")
+        Pattern.compile(
+            "^(?:[\\d零〇一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+[,:、])*([\\d零〇一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+)(?:[,:、]|\\.[^\\d])"
+        )
     }
 
     private val regexA by lazy {

@@ -610,10 +610,10 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
         get() = appCtx.getPrefBoolean(PreferKey.showMangaUi, true)
 
     //禁用漫画缩放
-    var disableMangaScaling: Boolean
-        get() = appCtx.getPrefBoolean(PreferKey.disableMangaScaling, true)
+    var disableMangaScale: Boolean
+        get() = appCtx.getPrefBoolean(PreferKey.disableMangaScale, true)
         set(value) {
-            appCtx.putPrefBoolean(PreferKey.disableMangaScaling, value)
+            appCtx.putPrefBoolean(PreferKey.disableMangaScale, value)
         }
 
     //漫画预加载数量
@@ -623,18 +623,11 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             appCtx.putPrefInt(PreferKey.mangaPreDownloadNum, value)
         }
 
-    //单页滚动
-    var singlePageScrolling
-        get() = appCtx.getPrefBoolean(PreferKey.singlePageScrolling, false)
-        set(value) {
-            appCtx.putPrefBoolean(PreferKey.singlePageScrolling, value)
-        }
-
     //点击翻页
-    var disableClickScroller
-        get() = appCtx.getPrefBoolean(PreferKey.disableClickScroller, false)
+    var disableClickScroll
+        get() = appCtx.getPrefBoolean(PreferKey.disableClickScroll, false)
         set(value) {
-            appCtx.putPrefBoolean(PreferKey.disableClickScroller, value)
+            appCtx.putPrefBoolean(PreferKey.disableClickScroll, value)
         }
 
     //漫画滚动速度
@@ -651,5 +644,24 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             appCtx.putPrefString(PreferKey.mangaFooterConfig, value)
         }
 
+    //漫画水平滚动
+    var enableMangaHorizontalScroll
+        get() = appCtx.getPrefBoolean(PreferKey.enableMangaHorizontalScroll, false)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.enableMangaHorizontalScroll, value)
+        }
+
+    var mangaColorFilter
+        get() = appCtx.getPrefString(PreferKey.mangaColorFilter, "")
+        set(value) {
+            appCtx.putPrefString(PreferKey.mangaColorFilter, value)
+        }
+
+    //禁用漫画内标题
+    var hideMangaTitle
+        get() = appCtx.getPrefBoolean(PreferKey.hideMangaTitle, false)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.hideMangaTitle, value)
+        }
 }
 

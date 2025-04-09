@@ -12,6 +12,7 @@ import android.os.Build
 import com.github.liuyueyi.quick.transfer.constants.TransType
 import com.jeremyliao.liveeventbus.LiveEventBus
 import com.jeremyliao.liveeventbus.logger.DefaultLogger
+import com.script.rhino.RhinoScriptEngine
 import io.legado.app.base.AppContextWrapper
 import io.legado.app.constant.AppConst.channelIdDownload
 import io.legado.app.constant.AppConst.channelIdReadAloud
@@ -54,8 +55,8 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashHandler(this)
+        LogUtils.init(this)
         LogUtils.d("App", "onCreate")
-        LogUtils.logDeviceInfo()
         if (isDebuggable) {
             ThreadUtils.setThreadAssertsDisabledForTesting(true)
         }
@@ -74,8 +75,10 @@ class App : Application() {
         DefaultData.upVersion()
         AppFreezeMonitor.init(this)
         Coroutine.async {
+            LogUtils.logDeviceInfo()
             URL.setURLStreamHandlerFactory(ObsoleteUrlFactory(okHttpClient))
             launch { installGmsTlsProvider(appCtx) }
+            RhinoScriptEngine
             //初始化封面
             BookCover.toString()
             //清除过期数据
@@ -210,6 +213,14 @@ class App : Application() {
 
         companion object {
             private const val TAG = "[LiveEventBus]"
+        }
+    }
+
+    companion object {
+        init {
+            if (BuildConfig.DEBUG) {
+                System.setProperty("kotlinx.coroutines.debug", "on")
+            }
         }
     }
 

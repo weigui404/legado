@@ -61,6 +61,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import splitties.init.appCtx
 import kotlin.math.max
 
 /**
@@ -321,12 +322,16 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
 
     override fun export(position: Int) {
         val path = ACache.get().getAsString(exportBookPathKey)
-        if (path.isNullOrEmpty() || !FileDoc.fromDir(path).checkWrite()) {
-            selectExportFolder(position)
-        } else if (enableCustomExport()) {// 启用自定义导出 and 导出类型为Epub
-            configExportSection(path, position)
-        } else {
-            startExport(path, position)
+        lifecycleScope.launch {
+            if (path.isNullOrEmpty() ||
+                withContext(IO) { !FileDoc.fromDir(path).checkWrite() }
+            ) {
+                selectExportFolder(position)
+            } else if (enableCustomExport()) {// 启用自定义导出 and 导出类型为Epub
+                configExportSection(path, position)
+            } else {
+                startExport(path, position)
+            }
         }
     }
 
@@ -440,22 +445,21 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
                     alertDialog.hide()
                     return@apply
                 }
-                val text = etInputScope.text
-                if (!verificationField(text.toString())) {
-                    etInputScope.error =
-                        applicationContext.getString(R.string.error_scope_input)//"请输入正确的范围"
+                val epubScope = etInputScope.text.toString()
+                if (!verificationField(epubScope)) {
+                    etInputScope.error = appCtx.getString(R.string.error_scope_input)//"请输入正确的范围"
                     return@apply
                 }
                 etInputScope.error = null
-                val toInt = etEpubSize.text.toString().toInt()
+                val epubSize = etEpubSize.text.toString().toIntOrNull() ?: 1
                 adapter.getItem(position)?.let { book ->
                     startService<ExportBookService> {
                         action = IntentAction.start
                         putExtra("bookUrl", book.bookUrl)
                         putExtra("exportType", "epub")
                         putExtra("exportPath", path)
-                        putExtra("epubSize", toInt)
-                        putExtra("epubScope", text.toString())
+                        putExtra("epubSize", epubSize)
+                        putExtra("epubScope", epubScope)
                     }
                 }
                 alertDialog.hide()

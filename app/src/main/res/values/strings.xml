@@ -829,7 +829,6 @@
     <string name="import_bookshelf">Import the list of books</string>
     <string name="pre_download">Download in advance</string>
     <string name="pre_download_m">Pre-download %s pages</string>
-    <string name="single_page_scroller">Single Page Scroller</string>
     <string name="pre_download_s">Download %s chapters in advance</string>
     <string name="is_enabled">Is enabled</string>
     <string name="background_image">Background image</string>
@@ -1143,6 +1142,7 @@
     <string name="export_book_notification_content">Exporting (%1$s), with %2$d to be exported.</string>
     <string name="export_md">Export(MD)</string>
     <string name="change_source_delay">Change source delay</string>
+    <string name="change_source_progress">Result %1$d, Progress %2$d / %3$d: %4$s</string>
     <string name="open_book_info_by_click_title">Click on the book title to open details</string>
     <string name="export_wait">Waiting for export</string>
     <string name="show_bookshelf_fast_scroller">Show quick scroll bar</string>
@@ -1186,10 +1186,11 @@
     <string name="show_same_source">显示重复书源</string>
     <string name="theme_config">主题配置</string>
     <string name="show_manga_ui">漫画浏览</string>
-    <string name="disable_manga_scaling">禁用漫画缩放</string>
-    <string name="disable_manga_click_scroller">禁用点击翻页</string>
-    <string name="enable_auto_page_scroller">开启自动翻页</string>
-    <string name="manga_auto_page_speed">翻页速度 %s 秒</string>
+    <string name="disable_manga_scale">禁用漫画缩放</string>
+    <string name="disable_manga_click_scroll">禁用点击翻页</string>
+    <string name="enable_auto_page_scroll">开启自动翻页</string>
+    <string name="manga_auto_page_speed">翻页速度 %s</string>
+    <string name="enable_auto_scroll">开启滚动</string>
     <string name="manga_footer_config">页脚配置</string>
     <string name="setting_manga_auto_page_speed">设置自动翻页速度</string>
     <string name="book_reader_info_bar">页数. %1$d/%2$d  章节. %3$d/%4$d -> %5$s%%</string>
@@ -1208,4 +1209,7 @@
     <string name="manga_header_footer">页脚</string>
     <string name="manga_radio_left">靠左</string>
     <string name="manga_radio_center">居中</string>
+    <string name="enable_manga_horizontal_scroll">水平滚动</string>
+    <string name="manga_color_filter">滤镜</string>
+    <string name="hide_manga_title">隐藏漫画列表标题</string>
 </resources>

@@ -12,6 +12,12 @@
             app:showAsAction="always" />
 
         <item
+            android:id="@+id/menu_refresh"
+            android:icon="@drawable/ic_refresh_black_24dp"
+            android:title="@string/refresh"
+            app:showAsAction="always" />
+
+        <item
             android:id="@+id/menu_catalog"
             android:icon="@drawable/ic_toc"
             android:title="@string/chapter_list"
@@ -25,41 +31,61 @@
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/menu_scroller_page"
+        android:id="@+id/menu_disable_manga_scale"
         android:checkable="true"
         android:checked="false"
-        android:title="@string/single_page_scroller"
+        android:title="@string/disable_manga_scale"
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/menu_disable_manga_scaling"
+        android:id="@+id/menu_disable_click_scroll"
         android:checkable="true"
         android:checked="false"
-        android:title="@string/disable_manga_scaling"
-        app:showAsAction="never" />
-
-    <item
-        android:id="@+id/menu_disable_click_scroller"
-        android:checkable="true"
-        android:checked="false"
-        android:title="@string/disable_manga_click_scroller"
+        android:title="@string/disable_manga_click_scroll"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/menu_enable_auto_page"
         android:checkable="true"
         android:checked="false"
-        android:title="@string/enable_auto_page_scroller"
+        android:title="@string/enable_auto_page_scroll"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_enable_auto_scroll"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/enable_auto_scroll"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/menu_manga_auto_page_speed"
-        android:visible="false"
         android:title="@string/manga_auto_page_speed"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_enable_horizontal_scroll"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/enable_manga_horizontal_scroll"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/menu_manga_footer_config"
         android:title="@string/manga_footer_config"
-        app:showAsAction="never"/>
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_manga_color_filter"
+        android:title="@string/manga_color_filter"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_hide_manga_title"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/hide_manga_title"
+        app:showAsAction="never" />
+
 </menu>
