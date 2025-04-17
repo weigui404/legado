@@ -21,10 +21,12 @@ import io.legado.app.utils.GSON
 import io.legado.app.utils.NetworkUtils
 import io.legado.app.utils.fromJsonObject
 import io.legado.app.utils.getOrPutLimit
+import io.legado.app.utils.isDataUrl
 import io.legado.app.utils.isJson
 import io.legado.app.utils.printOnDebug
 import io.legado.app.utils.splitNotBlank
 import io.legado.app.utils.stackTraceStr
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.apache.commons.text.StringEscapeUtils
@@ -99,6 +101,9 @@ class AnalyzeRule(
     }
 
     fun setRedirectUrl(url: String): URL? {
+        if (url.isDataUrl()) {
+            return redirectUrl
+        }
         try {
             redirectUrl = URL(url)
         } catch (e: Exception) {
@@ -791,15 +796,14 @@ class AnalyzeRule(
             ruleData = book,
             coroutineContext = coroutineContext
         )
-        return runBlocking(coroutineContext) {
-            kotlin.runCatching {
-                analyzeUrl.getStrResponseAwait().body
-            }.onFailure {
-                log("ajax(${urlStr}) error\n${it.stackTraceToString()}")
-                it.printOnDebug()
-            }.getOrElse {
-                it.stackTraceStr
-            }
+        return kotlin.runCatching {
+            analyzeUrl.getStrResponse().body
+        }.onFailure {
+            coroutineContext.ensureActive()
+            log("ajax(${urlStr}) error\n${it.stackTraceToString()}")
+            it.printOnDebug()
+        }.getOrElse {
+            it.stackTraceStr
         }
     }
 
@@ -812,7 +816,7 @@ class AnalyzeRule(
         if (bookSource == null || book == null) return
         runBlocking(coroutineContext) {
             withTimeout(1800000) {
-                WebBook.preciseSearchAwait(this, bookSource, book.name, book.author)
+                WebBook.preciseSearchAwait(bookSource, book.name, book.author)
                     .getOrThrow().let {
                         book.bookUrl = it.bookUrl
                         it.variableMap.forEach { entry ->

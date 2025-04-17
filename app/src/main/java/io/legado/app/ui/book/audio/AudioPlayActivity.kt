@@ -1,7 +1,6 @@
 package io.legado.app.ui.book.audio
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.icu.text.SimpleDateFormat
 import android.os.Build
 import android.os.Bundle
@@ -31,8 +30,6 @@ import io.legado.app.model.BookCover
 import io.legado.app.service.AudioPlayService
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.book.changesource.ChangeBookSourceDialog
-import io.legado.app.ui.book.manga.ReadMangaActivity
-import io.legado.app.ui.book.read.ReadBookActivity
 import io.legado.app.ui.book.source.edit.BookSourceEditActivity
 import io.legado.app.ui.book.toc.TocActivityResult
 import io.legado.app.ui.login.SourceLoginActivity
@@ -46,7 +43,7 @@ import io.legado.app.utils.observeEventSticky
 import io.legado.app.utils.sendToClip
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.startActivity
-import io.legado.app.utils.startReadOrMangaActivity
+import io.legado.app.utils.startActivityForBook
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import io.legado.app.utils.visible
 import kotlinx.coroutines.Dispatchers.IO
@@ -191,10 +188,10 @@ class AudioPlayActivity :
     }
 
     private fun upCover(path: String?) {
-        BookCover.load(this, path, sourceOrigin = AudioPlay.bookSource?.bookSourceUrl)
-            .into(binding.ivCover)
-        BookCover.loadBlur(this, path)
-            .into(binding.ivBg)
+        BookCover.load(this, path, sourceOrigin = AudioPlay.bookSource?.bookSourceUrl) {
+            BookCover.loadBlur(this, path, sourceOrigin = AudioPlay.bookSource?.bookSourceUrl)
+                .into(binding.ivBg)
+        }.into(binding.ivCover)
     }
 
     private fun playButton() {
@@ -220,9 +217,7 @@ class AudioPlayActivity :
                     AudioPlay.book?.delete()
                     appDb.bookDao.insert(book)
                 }
-                startReadOrMangaActivity<ReadBookActivity,ReadMangaActivity>(book) {
-                    putExtra("bookUrl", book.bookUrl)
-                }
+                startActivityForBook(book)
                 finish()
             }
         }
@@ -244,7 +239,7 @@ class AudioPlayActivity :
                     AudioPlay.book?.removeType(BookType.notShelf)
                     AudioPlay.book?.save()
                     AudioPlay.inBookshelf = true
-                    setResult(Activity.RESULT_OK)
+                    setResult(RESULT_OK)
                 }
                 noButton { viewModel.removeFromBookshelf { super.finish() } }
             }
@@ -293,7 +288,7 @@ class AudioPlayActivity :
 
         }
         observeEventSticky<Float>(EventBus.AUDIO_SPEED) {
-            binding.tvSpeed.text = String.format("%.1fX", it)
+            binding.tvSpeed.text = String.format(Locale.ROOT, "%.1fX", it)
             binding.tvSpeed.visible()
         }
         observeEventSticky<Int>(EventBus.AUDIO_DS) {
