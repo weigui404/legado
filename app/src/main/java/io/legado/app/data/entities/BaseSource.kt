@@ -9,8 +9,8 @@ import io.legado.app.constant.AppLog
 import io.legado.app.data.entities.rule.RowUi
 import io.legado.app.help.CacheManager
 import io.legado.app.help.JsExtensions
-import io.legado.app.help.crypto.SymmetricCryptoAndroid
 import io.legado.app.help.config.AppConfig
+import io.legado.app.help.crypto.SymmetricCryptoAndroid
 import io.legado.app.help.http.CookieStore
 import io.legado.app.help.source.getShareScope
 import io.legado.app.utils.GSON
@@ -235,16 +235,20 @@ interface BaseSource : JsExtensions {
     @Throws(Exception::class)
     fun evalJS(jsStr: String, bindingsConfig: ScriptBindings.() -> Unit = {}): Any? {
         val bindings = buildScriptBindings { bindings ->
-            bindings.apply(bindingsConfig)
             bindings["java"] = this
             bindings["source"] = this
             bindings["baseUrl"] = getKey()
             bindings["cookie"] = CookieStore
             bindings["cache"] = CacheManager
+            bindings.apply(bindingsConfig)
         }
-        val scope = RhinoScriptEngine.getRuntimeScope(bindings)
-        getShareScope()?.let {
-            scope.prototype = it
+        val sharedScope = getShareScope()
+        val scope = if (sharedScope == null) {
+            RhinoScriptEngine.getRuntimeScope(bindings)
+        } else {
+            bindings.apply {
+                prototype = sharedScope
+            }
         }
         return RhinoScriptEngine.eval(jsStr, scope)
     }

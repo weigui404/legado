@@ -12,6 +12,7 @@ import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
 import io.legado.app.data.entities.BookSource
 import io.legado.app.data.entities.RssArticle
+import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.CacheManager
 import io.legado.app.help.JsExtensions
 import io.legado.app.help.http.CookieStore
@@ -32,6 +33,8 @@ import kotlinx.coroutines.withTimeout
 import org.apache.commons.text.StringEscapeUtils
 import org.jsoup.nodes.Node
 import org.mozilla.javascript.NativeObject
+import org.mozilla.javascript.Scriptable
+import java.lang.ref.WeakReference
 import java.net.URL
 import java.util.Locale
 import java.util.regex.Pattern
@@ -46,7 +49,8 @@ import kotlin.coroutines.EmptyCoroutineContext
 @Suppress("unused", "RegExpRedundantEscape", "MemberVisibilityCanBePrivate")
 class AnalyzeRule(
     var ruleData: RuleDataInterface? = null,
-    private val source: BaseSource? = null
+    private val source: BaseSource? = null,
+    private val preUpdateJs: Boolean = false
 ) : JsExtensions {
 
     val book get() = ruleData as? BaseBook
@@ -70,6 +74,7 @@ class AnalyzeRule(
     private val stringRuleCache = hashMapOf<String, List<SourceRule>>()
     private val regexCache = hashMapOf<String, Regex?>()
     private val scriptCache = hashMapOf<String, CompiledScript>()
+    private var topScopeRef: WeakReference<Scriptable>? = null
 
     private var coroutineContext: CoroutineContext = EmptyCoroutineContext
 
@@ -85,11 +90,6 @@ class AnalyzeRule(
         analyzeByXPath = null
         analyzeByJSoup = null
         analyzeByJSonPath = null
-        return this
-    }
-
-    fun setCoroutineContext(context: CoroutineContext): AnalyzeRule {
-        coroutineContext = context.minusKey(ContinuationInterceptor)
         return this
     }
 
@@ -763,9 +763,15 @@ class AnalyzeRule(
             bindings["nextChapterUrl"] = nextChapterUrl
             bindings["rssArticle"] = rssArticle
         }
-        val scope = RhinoScriptEngine.getRuntimeScope(bindings)
-        source?.getShareScope(coroutineContext)?.let {
-            scope.prototype = it
+        val topScope = source?.getShareScope(coroutineContext) ?: topScopeRef?.get()
+        val scope = if (topScope == null) {
+            RhinoScriptEngine.getRuntimeScope(bindings).apply {
+                topScopeRef = WeakReference(prototype)
+            }
+        } else {
+            bindings.apply {
+                prototype = topScope
+            }
         }
         val script = compileScriptCache(jsStr)
         return script.eval(scope, coroutineContext)
@@ -811,6 +817,7 @@ class AnalyzeRule(
      * 重新获取book
      */
     fun reGetBook() {
+        if (!preUpdateJs) throw NoStackTraceException("只能在 preUpdateJs 中调用")
         val bookSource = source as? BookSource
         val book = book as? Book
         if (bookSource == null || book == null) return
@@ -829,23 +836,10 @@ class AnalyzeRule(
     }
 
     /**
-     * 刷新详情页
-     */
-    fun refreshBook() {
-        val bookSource = source as? BookSource
-        val book = book as? Book
-        if (bookSource == null || book == null) return
-        runBlocking(coroutineContext) {
-            withTimeout(1800000) {
-                WebBook.getBookInfoAwait(bookSource, book, false)
-            }
-        }
-    }
-
-    /**
      * 更新tocUrl,有些书源目录url定期更新,可以在js调用更新
      */
     fun refreshTocUrl() {
+        if (!preUpdateJs) throw NoStackTraceException("只能在 preUpdateJs 中调用")
         val bookSource = source as? BookSource
         val book = book as? Book
         if (bookSource == null || book == null) return
@@ -861,6 +855,12 @@ class AnalyzeRule(
         private val evalPattern =
             Pattern.compile("@get:\\{[^}]+?\\}|\\{\\{[\\w\\W]*?\\}\\}", Pattern.CASE_INSENSITIVE)
         private val regexPattern = Pattern.compile("\\$\\d{1,2}")
+
+        fun AnalyzeRule.setCoroutineContext(context: CoroutineContext): AnalyzeRule {
+            coroutineContext = context.minusKey(ContinuationInterceptor)
+            return this
+        }
+
     }
 
 }

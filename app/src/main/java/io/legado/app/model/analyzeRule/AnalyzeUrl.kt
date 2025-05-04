@@ -78,7 +78,7 @@ class AnalyzeUrl(
     val page: Int? = null,
     val speakText: String? = null,
     val speakSpeed: Int? = null,
-    var baseUrl: String = "",
+    private var baseUrl: String = "",
     private val source: BaseSource? = null,
     private val ruleData: RuleDataInterface? = null,
     private val chapter: BookChapter? = null,
@@ -88,12 +88,6 @@ class AnalyzeUrl(
     headerMapF: Map<String, String>? = null,
     hasLoginHeader: Boolean = true
 ) : JsExtensions {
-    companion object {
-        val paramPattern: Pattern = Pattern.compile("\\s*,\\s*(?=\\{)")
-        private val pagePattern = Pattern.compile("<(.*?)>")
-        private val queryEncoder =
-            RFC3986.UNRESERVED.orNew(PercentCodec.of("!$%&()*+,/:;=?@[\\]^`{|}"))
-    }
 
     var ruleUrl = ""
         private set
@@ -103,7 +97,7 @@ class AnalyzeUrl(
         private set
     var type: String? = null
         private set
-    val headerMap = HashMap<String, String>()
+    val headerMap = LinkedHashMap<String, String>()
     private var urlNoQuery: String = ""
     private var encodedForm: String? = null
     private var encodedQuery: String? = null
@@ -357,9 +351,13 @@ class AnalyzeUrl(
             bindings["source"] = source
             bindings["result"] = result
         }
-        val scope = RhinoScriptEngine.getRuntimeScope(bindings)
-        source?.getShareScope(coroutineContext)?.let {
-            scope.prototype = it
+        val sharedScope = source?.getShareScope(coroutineContext)
+        val scope = if (sharedScope == null) {
+            RhinoScriptEngine.getRuntimeScope(bindings)
+        } else {
+            bindings.apply {
+                prototype = sharedScope
+            }
         }
         return RhinoScriptEngine.eval(jsStr, scope, coroutineContext)
     }
@@ -644,11 +642,6 @@ class AnalyzeUrl(
         return GlideUrl(url, GlideHeaders(headerMap))
     }
 
-    fun getMediaItem(): MediaItem {
-        setCookie()
-        return ExoPlayerHelper.createMediaItem(url, headerMap)
-    }
-
     fun getUserAgent(): String {
         return headerMap.get(UA_NAME, true) ?: AppConfig.userAgent
     }
@@ -659,6 +652,19 @@ class AnalyzeUrl(
 
     override fun getSource(): BaseSource? {
         return source
+    }
+
+    companion object {
+        val paramPattern: Pattern = Pattern.compile("\\s*,\\s*(?=\\{)")
+        private val pagePattern = Pattern.compile("<(.*?)>")
+        private val queryEncoder =
+            RFC3986.UNRESERVED.orNew(PercentCodec.of("!$%&()*+,/:;=?@[\\]^`{|}"))
+
+        fun AnalyzeUrl.getMediaItem(): MediaItem {
+            setCookie()
+            return ExoPlayerHelper.createMediaItem(url, headerMap)
+        }
+
     }
 
     @Keep
