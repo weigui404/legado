@@ -66,7 +66,7 @@ object LogUtils {
                     }
                 }
             }
-            val date = getCurrentDateStr(TIME_PATTERN)
+            val date = getCurrentDateStr(TIME_PATTERN).replace(" ", "_").replace(":", "-")
             val logPath = FileUtils.getPath(root = logFolder, "appLog-$date.txt")
             return AsyncFileHandler(logPath).apply {
                 formatter = object : java.util.logging.Formatter() {
@@ -124,6 +124,7 @@ object LogUtils {
                     }
                     append("WebViewUserAgent=").append(userAgent).append("\n")
                     append("packageName=").append(appCtx.packageName).append("\n")
+                    append("heapSize=").append(Runtime.getRuntime().maxMemory()).append("\n")
                     //获取app版本信息
                     AppConst.appInfo.let {
                         append("versionName=").append(it.versionName).append("\n")

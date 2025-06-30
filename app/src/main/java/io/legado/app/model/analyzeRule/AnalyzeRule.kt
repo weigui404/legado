@@ -50,22 +50,19 @@ import kotlin.coroutines.EmptyCoroutineContext
 @Keep
 @Suppress("unused", "RegExpRedundantEscape", "MemberVisibilityCanBePrivate")
 class AnalyzeRule(
-    var ruleData: RuleDataInterface? = null,
+    private var ruleData: RuleDataInterface? = null,
     private val source: BaseSource? = null,
     private val preUpdateJs: Boolean = false
 ) : JsExtensions {
 
-    val book get() = ruleData as? BaseBook
-    val rssArticle get() = ruleData as? RssArticle
+    private val book get() = ruleData as? BaseBook
+    private val rssArticle get() = ruleData as? RssArticle
 
-    var chapter: BookChapter? = null
-    var nextChapterUrl: String? = null
-    var content: Any? = null
-        private set
-    var baseUrl: String? = null
-        private set
-    var redirectUrl: URL? = null
-        private set
+    private var chapter: BookChapter? = null
+    private var nextChapterUrl: String? = null
+    private var content: Any? = null
+    private var baseUrl: String? = null
+    private var redirectUrl: URL? = null
     private var isJSON: Boolean = false
     private var isRegex: Boolean = false
 
@@ -77,6 +74,7 @@ class AnalyzeRule(
     private val regexCache = hashMapOf<String, Regex?>()
     private val scriptCache = hashMapOf<String, CompiledScript>()
     private var topScopeRef: WeakReference<Scriptable>? = null
+    private var evalJSCallCount = 0
 
     private var coroutineContext: CoroutineContext = EmptyCoroutineContext
 
@@ -520,6 +518,12 @@ class AnalyzeRule(
         return ruleList
     }
 
+    private fun getOrCreateSingleSourceRule(rule: String): List<SourceRule> {
+        return stringRuleCache.getOrPutLimit(rule, 16) {
+            listOf(SourceRule(rule))
+        }
+    }
+
     /**
      * 规则类
      */
@@ -672,7 +676,8 @@ class AnalyzeRule(
 
                         regType == jsRuleType -> {
                             if (isRule(ruleParam[index])) {
-                                getString(arrayListOf(SourceRule(ruleParam[index]))).let {
+                                val ruleList = getOrCreateSingleSourceRule(ruleParam[index])
+                                getString(ruleList).let {
                                     infoVal.insert(0, it)
                                 }
                             } else {
@@ -781,7 +786,9 @@ class AnalyzeRule(
         val topScope = source?.getShareScope(coroutineContext) ?: topScopeRef?.get()
         val scope = if (topScope == null) {
             RhinoScriptEngine.getRuntimeScope(bindings).apply {
-                topScopeRef = WeakReference(prototype)
+                if (evalJSCallCount++ > 16) {
+                    topScopeRef = WeakReference(prototype)
+                }
             }
         } else {
             bindings.apply {
@@ -789,7 +796,8 @@ class AnalyzeRule(
             }
         }
         val script = compileScriptCache(jsStr)
-        return script.eval(scope, coroutineContext)
+        val result = script.eval(scope, coroutineContext)
+        return result
     }
 
     private fun compileScriptCache(jsStr: String): CompiledScript {
@@ -873,6 +881,21 @@ class AnalyzeRule(
 
         fun AnalyzeRule.setCoroutineContext(context: CoroutineContext): AnalyzeRule {
             coroutineContext = context.minusKey(ContinuationInterceptor)
+            return this
+        }
+
+        fun AnalyzeRule.setRuleData(ruleData: RuleDataInterface?): AnalyzeRule {
+            this.ruleData = ruleData
+            return this
+        }
+
+        fun AnalyzeRule.setNextChapterUrl(nextChapterUrl: String?): AnalyzeRule {
+            this.nextChapterUrl = nextChapterUrl
+            return this
+        }
+
+        fun AnalyzeRule.setChapter(chapter: BookChapter?): AnalyzeRule {
+            this.chapter = chapter
             return this
         }
 

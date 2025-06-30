@@ -17,6 +17,7 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.model.ReadAloud
 import io.legado.app.model.ReadBook
+import io.legado.app.service.BaseReadAloudService
 import io.legado.app.ui.book.read.ContentEditDialog
 import io.legado.app.ui.book.read.page.api.DataSource
 import io.legado.app.ui.book.read.page.delegate.CoverPageDelegate
@@ -35,7 +36,6 @@ import io.legado.app.ui.book.read.page.provider.ChapterProvider
 import io.legado.app.ui.book.read.page.provider.LayoutProgressListener
 import io.legado.app.ui.book.read.page.provider.TextPageFactory
 import io.legado.app.utils.activity
-import io.legado.app.utils.canvasrecorder.pools.BitmapPool
 import io.legado.app.utils.invisible
 import io.legado.app.utils.longToastOnUi
 import io.legado.app.utils.showDialogFragment
@@ -451,6 +451,13 @@ class ReadView(context: Context, attrs: AttributeSet) :
                 { progress -> callBack.sureNewProgress(progress) },
                 { context.longToastOnUi(context.getString(R.string.upload_book_success)) },
                 { context.longToastOnUi(context.getString(R.string.sync_book_progress_success)) })
+            13 -> {
+                if (BaseReadAloudService.isPlay()) {
+                    ReadAloud.pause(context)
+                } else {
+                    ReadAloud.resume(context)
+                }
+            }
         }
     }
 
@@ -485,7 +492,6 @@ class ReadView(context: Context, attrs: AttributeSet) :
         pageDelegate?.onDestroy()
         curPage.cancelSelect()
         invalidateTextPage()
-        BitmapPool.clear()
     }
 
     /**

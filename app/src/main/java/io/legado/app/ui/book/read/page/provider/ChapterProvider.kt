@@ -9,6 +9,7 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import androidx.core.os.postDelayed
+import io.legado.app.constant.AppLog
 import io.legado.app.constant.AppPattern
 import io.legado.app.constant.EventBus
 import io.legado.app.data.entities.Book
@@ -864,11 +865,15 @@ object ChapterProvider {
         titleTopSpacing = ReadBookConfig.titleTopSpacing.dpToPx()
         titleBottomSpacing = ReadBookConfig.titleBottomSpacing.dpToPx()
         val bodyIndent = ReadBookConfig.paragraphIndent
-        var indentWidth = StaticLayout.getDesiredWidth(bodyIndent, contentPaint)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            indentWidth += contentPaint.letterSpacing * contentPaint.textSize
+        indentCharWidth = if (bodyIndent.isNotEmpty()) {
+            var indentWidth = StaticLayout.getDesiredWidth(bodyIndent, contentPaint)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                indentWidth += contentPaint.letterSpacing * contentPaint.textSize
+            }
+            indentWidth / bodyIndent.length
+        } else {
+            0f
         }
-        indentCharWidth = indentWidth / bodyIndent.length
         titlePaintTextHeight = titlePaint.textHeight
         contentPaintTextHeight = contentPaint.textHeight
         titlePaintFontMetrics = titlePaint.fontMetrics
@@ -997,28 +1002,40 @@ object ChapterProvider {
             }
         }
 
-        if (viewWidth > 0 && viewHeight > 0) {
-            paddingLeft = ReadBookConfig.paddingLeft.dpToPx()
-            paddingTop = ReadBookConfig.paddingTop.dpToPx()
-            paddingRight = ReadBookConfig.paddingRight.dpToPx()
-            paddingBottom = ReadBookConfig.paddingBottom.dpToPx()
-            visibleWidth = if (doublePage) {
-                viewWidth / 2 - paddingLeft - paddingRight
-            } else {
-                viewWidth - paddingLeft - paddingRight
-            }
-            //留1dp画最后一行下划线
-            visibleHeight = viewHeight - paddingTop - paddingBottom
-            visibleRight = viewWidth - paddingRight
-            visibleBottom = paddingTop + visibleHeight
+        if (viewWidth <= 0 || viewHeight <= 0) {
+            return
         }
 
-        visibleRect.set(
-            paddingLeft.toFloat(),
-            paddingTop.toFloat(),
-            visibleRight.toFloat(),
-            visibleBottom.toFloat()
-        )
+        paddingLeft = ReadBookConfig.paddingLeft.dpToPx()
+        paddingTop = ReadBookConfig.paddingTop.dpToPx()
+        paddingRight = ReadBookConfig.paddingRight.dpToPx()
+        paddingBottom = ReadBookConfig.paddingBottom.dpToPx()
+        visibleWidth = if (doublePage) {
+            viewWidth / 2 - paddingLeft - paddingRight
+        } else {
+            viewWidth - paddingLeft - paddingRight
+        }
+        //留1dp画最后一行下划线
+        visibleHeight = viewHeight - paddingTop - paddingBottom
+        visibleRight = viewWidth - paddingRight
+        visibleBottom = paddingTop + visibleHeight
+
+        if (paddingLeft >= visibleRight || paddingTop >= visibleBottom) {
+            AppLog.put("边距设置过大，请重新设置", toast = true)
+            visibleRect.set(
+                0f,
+                0f,
+                viewWidth.toFloat(),
+                viewHeight.toFloat()
+            )
+        } else {
+            visibleRect.set(
+                paddingLeft.toFloat(),
+                paddingTop.toFloat(),
+                visibleRight.toFloat(),
+                visibleBottom.toFloat()
+            )
+        }
 
     }
 

@@ -6,6 +6,7 @@ import io.legado.app.BuildConfig
 import io.legado.app.constant.AppConst
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.appDb
+import io.legado.app.utils.canvasrecorder.CanvasRecorderFactory
 import io.legado.app.utils.getPrefBoolean
 import io.legado.app.utils.getPrefInt
 import io.legado.app.utils.getPrefLong
@@ -37,7 +38,8 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
     var clickActionBR = appCtx.getPrefInt(PreferKey.clickActionBR, 1)
     var themeMode = appCtx.getPrefString(PreferKey.themeMode, "0")
     var useDefaultCover = appCtx.getPrefBoolean(PreferKey.useDefaultCover, false)
-    var optimizeRender = appCtx.getPrefBoolean(PreferKey.optimizeRender, false)
+    var optimizeRender = CanvasRecorderFactory.isSupport
+            && appCtx.getPrefBoolean(PreferKey.optimizeRender, false)
     var recordLog = appCtx.getPrefBoolean(PreferKey.recordLog)
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
@@ -87,8 +89,8 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             PreferKey.useDefaultCover -> useDefaultCover =
                 appCtx.getPrefBoolean(PreferKey.useDefaultCover, false)
 
-            PreferKey.optimizeRender -> optimizeRender =
-                appCtx.getPrefBoolean(PreferKey.optimizeRender, false)
+            PreferKey.optimizeRender -> optimizeRender = CanvasRecorderFactory.isSupport
+                    && appCtx.getPrefBoolean(PreferKey.optimizeRender, false)
 
             PreferKey.recordLog -> recordLog = appCtx.getPrefBoolean(PreferKey.recordLog)
 
@@ -511,6 +513,9 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
     val mouseWheelPage
         get() = appCtx.getPrefBoolean(PreferKey.mouseWheelPage, true)
 
+    val paddingDisplayCutouts
+        get() = appCtx.getPrefBoolean(PreferKey.paddingDisplayCutouts, false)
+
     var searchScope: String
         get() = appCtx.getPrefString("searchScope") ?: ""
         set(value) {
@@ -663,5 +668,31 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
         set(value) {
             appCtx.putPrefBoolean(PreferKey.hideMangaTitle, value)
         }
+
+    //开启墨水屏模式
+    var enableMangaEInk
+        get() = appCtx.getPrefBoolean(PreferKey.enableMangaEInk, false)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.enableMangaEInk, value)
+        }
+
+    var mangaEInkThreshold
+        get() = appCtx.getPrefInt(PreferKey.mangaEInkThreshold, 150)
+        set(value) {
+            appCtx.putPrefInt(PreferKey.mangaEInkThreshold, value)
+        }
+
+    var disableHorizontalAnimator
+        get() = appCtx.getPrefBoolean(PreferKey.disableHorizontalAnimator, false)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.disableHorizontalAnimator, value)
+        }
+
+    var enableMangaGray
+        get() = appCtx.getPrefBoolean(PreferKey.enableMangaGray, false)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.enableMangaGray, value)
+        }
+
 }
 

@@ -45,8 +45,8 @@ import java.util.Collections
  */
 object RhinoClassShutter : ClassShutter {
 
-    private val protectedClassNames by lazy {
-        hashSetOf(
+    private val protectedClassNamesMatcher by lazy {
+        listOf(
             "java.lang.Class",
             "java.lang.ClassLoader",
             "java.net.URLClassLoader",
@@ -55,6 +55,7 @@ object RhinoClassShutter : ClassShutter {
             "java.lang.ProcessImpl",
             "java.lang.UNIXProcess",
             "java.io.File",
+            "java.io.FileDescriptor",
             "java.io.FileInputStream",
             "java.io.FileOutputStream",
             "java.io.PrintStream",
@@ -77,6 +78,7 @@ object RhinoClassShutter : ClassShutter {
             "android.app.AppGlobals",
             "android.os.Looper",
             "android.os.Process",
+            "android.os.FileUtils",
 
             "cn.hutool.core.lang.JarClassLoader",
             "cn.hutool.core.lang.Singleton",
@@ -113,7 +115,8 @@ object RhinoClassShutter : ClassShutter {
             "com.script",
             "org.mozilla",
             "sun",
-        ).let { Collections.unmodifiableSet(it) }
+            "libcore",
+        ).let { ClassNameMatcher(it) }
     }
 
     private val systemClassProtectedName by lazy {
@@ -181,14 +184,7 @@ object RhinoClassShutter : ClassShutter {
     }
 
     override fun visibleToScripts(fullClassName: String): Boolean {
-        var className = fullClassName
-        while (className.isNotEmpty()) {
-            if (protectedClassNames.contains(className)) {
-                return false
-            }
-            className = className.substringBeforeLast(".", "")
-        }
-        return true
+        return !protectedClassNamesMatcher.match(fullClassName)
     }
 
 }
