@@ -3,6 +3,7 @@
 package io.legado.app.help.book
 
 import android.net.Uri
+import androidx.core.net.toUri
 import com.script.buildScriptBindings
 import com.script.rhino.RhinoScriptEngine
 import io.legado.app.constant.AppLog
@@ -24,6 +25,7 @@ import io.legado.app.utils.exists
 import io.legado.app.utils.find
 import io.legado.app.utils.inputStream
 import io.legado.app.utils.isUri
+import io.legado.app.utils.normalizeFileName
 import io.legado.app.utils.toastOnUi
 import splitties.init.appCtx
 import java.io.File
@@ -113,7 +115,7 @@ fun Book.getLocalUri(): Uri {
         return uri
     }
     uri = if (bookUrl.isUri()) {
-        Uri.parse(bookUrl)
+        bookUrl.toUri()
     } else {
         Uri.fromFile(File(bookUrl))
     }
@@ -129,7 +131,7 @@ fun Book.getLocalUri(): Uri {
 
     // 查找书籍保存目录
     if (!defaultBookDir.isNullOrBlank()) {
-        val treeUri = Uri.parse(defaultBookDir)
+        val treeUri = defaultBookDir.toUri()
         val treeFileDoc = FileDoc.fromUri(treeUri, true)
         if (!treeFileDoc.exists()) {
             appCtx.toastOnUi("书籍保存目录失效，请重新设置！")
@@ -148,7 +150,7 @@ fun Book.getLocalUri(): Uri {
     // 查找添加本地选择的目录
     if (!importBookDir.isNullOrBlank() && defaultBookDir != importBookDir) {
         val treeUri = if (importBookDir.isUri()) {
-            Uri.parse(importBookDir)
+            importBookDir.toUri()
         } else {
             Uri.fromFile(File(importBookDir))
         }
@@ -170,7 +172,7 @@ fun Book.getLocalUri(): Uri {
 fun Book.getArchiveUri(): Uri? {
     val defaultBookDir = AppConfig.defaultBookTreeUri
     return if (isArchive && !defaultBookDir.isNullOrBlank()) {
-        FileDoc.fromUri(Uri.parse(defaultBookDir), true)
+        FileDoc.fromUri(defaultBookDir.toUri(), true)
             .find(archiveName)?.uri
     } else {
         null
@@ -273,7 +275,7 @@ fun Book.updateTo(newBook: Book): Book {
         newBook.hasVariable(it)
     }
     newBook.variableMap.putAll(variableMap)
-    newBook.variable = GSON.toJson(variableMap)
+    newBook.variable = GSON.toJson(newBook.variableMap)
     return newBook
 }
 
@@ -346,7 +348,7 @@ fun Book.getExportFileName(
         RhinoScriptEngine.eval(jsStr, bindings).toString() + "." + suffix
     }.onFailure {
         AppLog.put("导出书名规则错误,使用默认规则\n${it.localizedMessage}", it)
-    }.getOrDefault(default)
+    }.getOrDefault(default).normalizeFileName()
 }
 
 // 根据当前日期计算章节总数

@@ -49,6 +49,7 @@ object AudioPlay : CoroutineScope by MainScope() {
             }
         }
     }
+
     var playMode = PlayMode.LIST_END_STOP
     var status = Status.STOP
     private var activityContext: Context? = null
@@ -81,6 +82,7 @@ object AudioPlay : CoroutineScope by MainScope() {
             chapterSize
         }
         if (durChapterIndex != book.durChapterIndex) {
+            stopPlay()
             durChapterIndex = book.durChapterIndex
             durChapterPos = book.durChapterPos
             durPlayUrl = ""
@@ -144,6 +146,11 @@ object AudioPlay : CoroutineScope by MainScope() {
                     removeLoading(index)
                     return
                 }
+                if (chapter.isVolume) {
+                    skipTo(index + 1)
+                    removeLoading(index)
+                    return
+                }
                 upLoading(true)
                 WebBook.getContent(this, bookSource, book, chapter)
                     .onSuccess { content ->
@@ -155,6 +162,8 @@ object AudioPlay : CoroutineScope by MainScope() {
                     }.onError {
                         AppLog.put("获取资源链接出错\n$it", it, true)
                         upLoading(false)
+                    }.onCancel {
+                        removeLoading(index)
                     }.onFinally {
                         removeLoading(index)
                     }
@@ -208,7 +217,8 @@ object AudioPlay : CoroutineScope by MainScope() {
         val book = book ?: return
         durChapter = appDb.bookChapterDao.getChapter(book.bookUrl, durChapterIndex)
         durAudioSize = durChapter?.end?.toInt() ?: 0
-        postEvent(EventBus.AUDIO_SUB_TITLE, durChapter?.title ?: appCtx.getString(R.string.data_loading))
+        val title = durChapter?.title ?: appCtx.getString(R.string.data_loading)
+        postEvent(EventBus.AUDIO_SUB_TITLE, title)
         postEvent(EventBus.AUDIO_SIZE, durAudioSize)
         postEvent(EventBus.AUDIO_PROGRESS, durChapterPos)
     }
@@ -260,11 +270,13 @@ object AudioPlay : CoroutineScope by MainScope() {
     fun skipTo(index: Int) {
         Coroutine.async {
             stopPlay()
-            durChapterIndex = index
-            durChapterPos = 0
-            durPlayUrl = ""
-            saveRead()
-            loadPlayUrl()
+            if (index in 0..<simulatedChapterSize) {
+                durChapterIndex = index
+                durChapterPos = 0
+                durPlayUrl = ""
+                saveRead()
+                loadPlayUrl()
+            }
         }
     }
 
@@ -293,12 +305,14 @@ object AudioPlay : CoroutineScope by MainScope() {
                     loadPlayUrl()
                 }
             }
+
             PlayMode.SINGLE_LOOP -> {
                 durChapterPos = 0
                 durPlayUrl = ""
                 saveRead()
                 loadPlayUrl()
             }
+
             PlayMode.RANDOM -> {
                 durChapterIndex = (0 until simulatedChapterSize).random()
                 durChapterPos = 0
@@ -306,6 +320,7 @@ object AudioPlay : CoroutineScope by MainScope() {
                 saveRead()
                 loadPlayUrl()
             }
+
             PlayMode.LIST_LOOP -> {
                 durChapterIndex = (durChapterIndex + 1) % simulatedChapterSize
                 durChapterPos = 0

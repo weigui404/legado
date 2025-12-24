@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.Looper
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
@@ -164,6 +163,7 @@ class ReadMangaActivity : VMBaseActivity<ActivityMangaBinding, ReadMangaViewMode
             binding.llRetry.isGone = true
             ReadManga.loadOrUpContent()
         }
+        binding.pbLoading.isVisible = !AppConfig.isEInkMode
         mAdapter.addFooterView {
             ViewLoadMoreBinding.bind(loadMoreView)
         }
@@ -247,10 +247,7 @@ class ReadMangaActivity : VMBaseActivity<ActivityMangaBinding, ReadMangaViewMode
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
         super.onPostCreate(savedInstanceState)
-        Looper.myQueue().addIdleHandler {
-            viewModel.initData(intent)
-            false
-        }
+        viewModel.initData(intent)
         justInitData = true
     }
 
@@ -545,7 +542,7 @@ class ReadMangaActivity : VMBaseActivity<ActivityMangaBinding, ReadMangaViewMode
             R.id.menu_enable_horizontal_scroll -> {
                 item.isChecked = !item.isChecked
                 AppConfig.enableMangaHorizontalScroll = item.isChecked
-                mMenu?.findItem(R.id.menu_disable_horizontal_animation)?.isVisible = item.isChecked
+                mMenu?.findItem(R.id.menu_disable_horizontal_page_snap)?.isVisible = item.isChecked
                 setHorizontalScroll(item.isChecked)
                 mAdapter.notifyDataSetChanged()
             }
@@ -589,9 +586,9 @@ class ReadMangaActivity : VMBaseActivity<ActivityMangaBinding, ReadMangaViewMode
                 showDialogFragment(MangaEpaperDialog())
             }
 
-            R.id.menu_disable_horizontal_animation -> {
+            R.id.menu_disable_horizontal_page_snap -> {
                 item.isChecked = !item.isChecked
-                AppConfig.disableHorizontalAnimator = item.isChecked
+                AppConfig.disableHorizontalPageSnap = item.isChecked
                 if (item.isChecked) {
                     mPagerSnapHelper.attachToRecyclerView(null)
                 } else {
@@ -662,7 +659,7 @@ class ReadMangaActivity : VMBaseActivity<ActivityMangaBinding, ReadMangaViewMode
         mAdapter.isHorizontal = enable
         if (enable) {
             if (!enableAutoScroll) {
-                if (AppConfig.disableHorizontalAnimator) {
+                if (AppConfig.disableHorizontalPageSnap) {
                     mPagerSnapHelper.attachToRecyclerView(null)
                 } else {
                     mPagerSnapHelper.attachToRecyclerView(binding.recyclerView)
@@ -688,10 +685,9 @@ class ReadMangaActivity : VMBaseActivity<ActivityMangaBinding, ReadMangaViewMode
             AppConfig.enableMangaHorizontalScroll
         menu.findItem(R.id.menu_epaper_manga).isChecked = AppConfig.enableMangaEInk
         menu.findItem(R.id.menu_epaper_manga_setting).isVisible = AppConfig.enableMangaEInk
-        menu.findItem(R.id.menu_disable_horizontal_animation).run {
-            isVisible =
-                AppConfig.enableMangaHorizontalScroll
-            isChecked = AppConfig.disableHorizontalAnimator
+        menu.findItem(R.id.menu_disable_horizontal_page_snap).run {
+            isVisible = AppConfig.enableMangaHorizontalScroll
+            isChecked = AppConfig.disableHorizontalPageSnap
         }
         menu.findItem(R.id.menu_gray_manga).isChecked = AppConfig.enableMangaGray
     }

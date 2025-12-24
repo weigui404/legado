@@ -1,7 +1,6 @@
 package io.legado.app.ui.book.import
 
 import android.os.Bundle
-import android.view.MotionEvent
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.ViewModel
 import io.legado.app.R
@@ -19,13 +18,11 @@ import io.legado.app.ui.file.HandleFileContract
 import io.legado.app.utils.ArchiveUtils
 import io.legado.app.utils.FileDoc
 import io.legado.app.utils.applyTint
-import io.legado.app.utils.hideSoftInput
-import io.legado.app.utils.shouldHideSoftInput
 import io.legado.app.utils.startActivityForBook
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 abstract class BaseImportBookActivity<VM : ViewModel> :
     VMBaseActivity<ActivityImportBookBinding, VM>() {
@@ -49,24 +46,10 @@ abstract class BaseImportBookActivity<VM : ViewModel> :
         initSearchView()
     }
 
-    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (ev.action == MotionEvent.ACTION_DOWN) {
-            currentFocus?.let {
-                if (it.shouldHideSoftInput(ev)) {
-                    it.post {
-                        it.clearFocus()
-                        it.hideSoftInput()
-                    }
-                }
-            }
-        }
-        return super.dispatchTouchEvent(ev)
-    }
-
     /**
      * 设置书籍保存位置
      */
-    protected suspend fun setBookStorage() = suspendCoroutine { block ->
+    protected suspend fun setBookStorage() = suspendCancellableCoroutine sc@{ block ->
         localBookTreeSelectListener = {
             localBookTreeSelectListener = null
             block.resume(it)
@@ -75,7 +58,7 @@ abstract class BaseImportBookActivity<VM : ViewModel> :
         if (!AppConfig.defaultBookTreeUri.isNullOrBlank()) {
             localBookTreeSelectListener = null
             block.resume(true)
-            return@suspendCoroutine
+            return@sc
         }
         //测试读写??
         val storageHelp = String(assets.open("storageHelp.md").readBytes())
